@@ -1,3 +1,21 @@
+# GCP credentials
+*.json
+!package.json
+
+# Local data files
+data/*.csv
+data/*.parquet
+
+# Terraform state
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.pyc
+.env
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
