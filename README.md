@@ -115,4 +115,4 @@ FROM `YOUR_PROJECT_ID.loan_mart.fact_loans`
 GROUP BY loan_status;
 
 ### 11. View dashboard
-[Looker Studio Dashboard](YOUR_DASHBOARD_LINK)
+[Looker Studio Dashboard](https://lookerstudio.google.com/embed/reporting/20547e89-9187-4f62-bdcd-66faf4599f6e/page/KgNsF)
