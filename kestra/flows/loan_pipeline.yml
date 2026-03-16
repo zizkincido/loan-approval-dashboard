@@ -1,0 +1,86 @@
+id: loan_pipeline
+namespace: system
+description: "End-to-end loan approval data pipeline"
+
+triggers:
+  - id: daily_schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 6 * * *"
+
+tasks:
+
+  # ── Task 1: Download CSV from Kaggle ─────────────────────────────
+  - id: download_kaggle
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.11-slim
+    beforeCommands:
+      - pip install kaggle --quiet
+    env:
+      KAGGLE_USERNAME: "{{ kv('KAGGLE_USERNAME') }}"
+      KAGGLE_KEY: "{{ kv('KAGGLE_KEY') }}"
+    script: |
+      import subprocess, os
+      subprocess.run([
+        "kaggle", "datasets", "download",
+        "-d", "rohitgrewal/loan-approval-dataset",
+        "-p", ".", "--unzip"
+      ], check=True)
+      print("Download complete.")
+    outputFiles:
+      - "*.csv"
+
+  # ── Task 2: Convert CSV to Parquet ───────────────────────────────
+  - id: convert_to_parquet
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.11-slim
+    beforeCommands:
+      - pip install pandas pyarrow --quiet
+    inputFiles:
+      loan_approval_dataset.csv: "{{ outputs.download_kaggle.outputFiles['loan_approval_dataset.csv'] }}"
+    script: |
+      import pandas as pd
+      from datetime import datetime
+
+      df = pd.read_csv("loan_approval_dataset.csv")
+      df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
+      df["ingested_at"] = datetime.utcnow().isoformat()
+
+      df.to_parquet("loan_approval.parquet", index=False)
+      print(f"Converted {len(df)} rows to Parquet.")
+    outputFiles:
+      - loan_approval.parquet
+
+  # ── Task 3: Upload Parquet to GCS ────────────────────────────────
+  - id: upload_to_gcs
+    type: io.kestra.plugin.gcp.gcs.Upload
+    serviceAccount: "{{ kv('GCP_SERVICE_ACCOUNT_KEY') }}"
+    projectId: "{{ kv('GCP_PROJECT_ID') }}"
+    from: "{{ outputs.convert_to_parquet.outputFiles['loan_approval.parquet'] }}"
+    to: "gs://{{ kv('GCP_PROJECT_ID') }}-loan-data-lake/raw/{{ execution.startDate | date('yyyy/MM/dd') }}/loan_approval.parquet"
+
+  # ── Task 4: Load Parquet from GCS into BigQuery raw ──────────────
+  - id: load_to_bigquery
+    type: io.kestra.plugin.gcp.bigquery.LoadFromGcs
+    serviceAccount: "{{ kv('GCP_SERVICE_ACCOUNT_KEY') }}"
+    projectId: "{{ kv('GCP_PROJECT_ID') }}"
+    destinationTable: "{{ kv('GCP_PROJECT_ID') }}.loan_raw.loan_data"
+    from:
+      - "gs://{{ kv('GCP_PROJECT_ID') }}-loan-data-lake/raw/{{ execution.startDate | date('yyyy/MM/dd') }}/loan_approval.parquet"
+    format: PARQUET
+    writeDisposition: WRITE_TRUNCATE
+    autodetect: true
+
+  # ── Task 5: Submit PySpark job on Dataproc ───────────────────────
+  - id: run_spark_transform
+    type: io.kestra.plugin.gcp.dataproc.batches.PySparkSubmit
+    serviceAccount: "{{ kv('GCP_SERVICE_ACCOUNT_KEY') }}"
+    projectId: "{{ kv('GCP_PROJECT_ID') }}"
+    region: "europe-west1"
+    name: "loan-spark-transform"
+    mainPythonFileUri: "gs://{{ kv('GCP_PROJECT_ID') }}-loan-data-lake/scripts/transform.py"
+    args:
+      - "--project={{ kv('GCP_PROJECT_ID') }}"
+      - "--input_dataset=loan_raw"
+      - "--input_table=loan_data"
+      - "--output_dataset=loan_mart"
+
