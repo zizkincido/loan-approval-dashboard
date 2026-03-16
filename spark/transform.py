@@ -105,15 +105,17 @@ df = df.withColumn(
 print("Enriched schema:")
 df.printSchema()
 
-# ── 3. Mart Table 1: fact_loans (row-level, clean) ───────────────────
+# ── 3. Mart Table 1: fact_loans (partitioned + clustered) ────────────
 print("Writing fact_loans...")
+
+# Write to a temp table first, then use BigQuery DDL to recreate
+# with partitioning and clustering
 df.write \
     .format("bigquery") \
-    .option("table", f"{BQ_OUTPUT}.fact_loans") \
+    .option("table", f"{BQ_OUTPUT}.fact_loans_temp") \
     .option("temporaryGcsBucket", BUCKET) \
     .mode("overwrite") \
     .save()
-
 # ── 4. Mart Table 2: agg_approval_by_education ───────────────────────
 agg_education = df.groupBy("education", "loan_status").agg(
     F.count("*").alias("count"),

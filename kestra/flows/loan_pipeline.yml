@@ -83,4 +83,27 @@ tasks:
       - "--input_dataset=loan_raw"
       - "--input_table=loan_data"
       - "--output_dataset=loan_mart"
+# ── Task 6: Apply partitioning & clustering via BigQuery DDL ─────
+  - id: optimize_tables
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT_KEY') }}"
+    projectId: "{{ kv('GCP_PROJECT_ID') }}"
+    sql: |
+      CREATE OR REPLACE TABLE `{{ kv('GCP_PROJECT_ID') }}.loan_mart.fact_loans`
+      PARTITION BY RANGE_BUCKET(cibil_score, GENERATE_ARRAY(300, 900, 50))
+      CLUSTER BY education, loan_status, income_tier
+      AS
+      SELECT * FROM `{{ kv('GCP_PROJECT_ID') }}.loan_mart.fact_loans_temp`;
+
+      DROP TABLE IF EXISTS `{{ kv('GCP_PROJECT_ID') }}.loan_mart.fact_loans_temp`;
+
+      CREATE OR REPLACE TABLE `{{ kv('GCP_PROJECT_ID') }}.loan_mart.agg_approval_by_cibil_band`
+      CLUSTER BY cibil_band, loan_status
+      AS
+      SELECT * FROM `{{ kv('GCP_PROJECT_ID') }}.loan_mart.agg_approval_by_cibil_band`;
+
+      CREATE OR REPLACE TABLE `{{ kv('GCP_PROJECT_ID') }}.loan_mart.agg_approval_by_education`
+      CLUSTER BY education, loan_status
+      AS
+      SELECT * FROM `{{ kv('GCP_PROJECT_ID') }}.loan_mart.agg_approval_by_education`;
 
