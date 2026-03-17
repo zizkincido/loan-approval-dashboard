@@ -195,3 +195,4 @@ def test_agg_approval_by_education_columns(sample_df):
     }
     assert expected_cols.issubset(set(agg.columns))
     assert agg.count() > 0
+    
