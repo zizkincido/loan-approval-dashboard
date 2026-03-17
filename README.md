@@ -44,6 +44,37 @@ Kaggle CSV → Kestra (orchestration) → GCS (data lake) → BigQuery raw → S
 - **Clustered by** their primary grouping columns
   → Looker Studio queries always filter/group by these — clustering
     makes each query faster and cheaper
+## CI/CD
+
+![CI](https://github.com/zizkincido/loan-approval-dashboard/actions/workflows/ci.yml/badge.svg)
+
+Every push to `main` automatically:
+- Lints Python code with flake8
+- Runs 10 pytest tests against Spark transformation logic
+- Validates Terraform configuration
+
+## Tests
+
+Run locally with:
+\`\`\`bash
+make test
+\`\`\`
+
+## Makefile commands
+
+| Command | Description |
+|---|---|
+| `make setup` | Install all dependencies |
+| `make download` | Download Kaggle dataset |
+| `make convert` | Convert CSV to Parquet |
+| `make upload-gcs` | Upload data to GCS |
+| `make upload-spark` | Upload Spark script to GCS |
+| `make infra-init` | Terraform init |
+| `make infra-apply` | Terraform apply |
+| `make test` | Run pytest |
+| `make lint` | Run flake8 |
+| `make all` | Full local setup in one command |
+
 ## Dashboard
 [View live dashboard](https://lookerstudio.google.com/embed/reporting/20547e89-9187-4f62-bdcd-66faf4599f6e/page/KgNsF)
 
