@@ -19,8 +19,9 @@ the pipeline enables analysts to monitor approval trends without any manual
 intervention — running on a daily schedule on Google Cloud Platform.
 
 ## Architecture
-Kaggle CSV → Kestra (orchestration) → GCS (data lake) → BigQuery raw → Spark (Dataproc) → BigQuery mart → Looker Studio
-
+```
+Kaggle CSV → Kestra → GCS (data lake) → BigQuery raw → Spark (Dataproc) → BigQuery mart → Looker Studio
+```
 ## Technologies
 | Layer | Tool |
 |---|---|
