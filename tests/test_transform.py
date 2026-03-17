@@ -62,7 +62,7 @@ def test_string_trimming(sample_df):
 
     educations = [r.education for r in cleaned.select("education").collect()]
     statuses = [r.loan_status for r in cleaned.select("loan_status").collect()]
-    
+
     assert all(e == e.strip() for e in educations)
     assert all(s == s.strip() for s in statuses)
     assert all(e == e.lower() for e in educations)
