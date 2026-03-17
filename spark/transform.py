@@ -11,9 +11,9 @@ parser.add_argument("--input_table",    required=True)
 parser.add_argument("--output_dataset", required=True)
 args = parser.parse_args()
 
-BQ_INPUT  = f"{args.project}.{args.input_dataset}.{args.input_table}"
+BQ_INPUT = f"{args.project}.{args.input_dataset}.{args.input_table}"
 BQ_OUTPUT = f"{args.project}.{args.output_dataset}"
-BUCKET    = f"{args.project}-loan-data-lake"
+BUCKET = f"{args.project}-loan-data-lake"
 
 # ── Spark Session ─────────────────────────────────────────────────────
 spark = SparkSession.builder \
